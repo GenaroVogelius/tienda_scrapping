@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 import time
+import os
 
 options = Options()
 options.add_argument('--ignore-certificate-errors')
@@ -22,7 +23,7 @@ vuelta = 0
 def has_new_content_loaded(current_height):
     # Scroll down to the bottom to trigger loading more content
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(2)  # Give it some time to load
+    time.sleep(4)  # Give it some time to load
 
     # Get the new page height after scrolling
     new_height = driver.execute_script("return document.body.scrollHeight")
@@ -69,7 +70,10 @@ class Getter_info():
             self.codigos.append(text)
 
     def get_all_info_in_dict(self):
-        data = {'Codigos': self.get_codigos_info(), 'precios': self.get_price_info(), 'Descripcion': self.get_productos_info()}
+        self.get_codigos_info()
+        self.get_productos_info()
+        self.get_price_info()
+        data = {'Codigos': self.codigos, 'Precios': self.precios, 'Descripcion': self.descripciones}
         return data
 
 
@@ -78,6 +82,9 @@ GI = Getter_info(page_source)
 
 data = GI.get_all_info_in_dict()
 
+# print(len(data["Codigos"]))
+# print(len(data["Precios"]))
+# print(len(data["Descripcion"]))
 # GI.get_codigos_info()
 # GI.get_productos_info()
 # GI.get_price_info()
@@ -92,11 +99,17 @@ data = GI.get_all_info_in_dict()
 
 
 
+# Create the DataFrame with the specified index
 df = pd.DataFrame(data)
 # Specify the file path for the Excel file
-excel_file_path = 'bijouterie.xlsx'
+excel_file = 'bijouterie.xlsx'
+
+
+if os.path.exists(excel_file):
+    os.remove(excel_file)
+
 
 # Write the DataFrame to an Excel file
-df.to_excel(excel_file_path, index=False)
+df.to_excel(excel_file, index=False)
 
-print(f"Excel '{excel_file_path}' creado exitosamente :)")
+print(f"Excel '{excel_file}' creado exitosamente :)")
