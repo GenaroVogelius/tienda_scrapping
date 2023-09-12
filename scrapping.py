@@ -6,48 +6,74 @@ import pandas as pd
 import time
 import os
 
-options = Options()
-options.add_argument('--ignore-certificate-errors')
-options.add_argument('--incognito')
-options.add_argument('--headless')  
+
+# options = Options()
+# options.add_argument('--ignore-certificate-errors')
+# options.add_argument('--incognito')
+# options.add_argument('--headless')  
 
 # Crear una instancia del navegador Chrome con las opciones configuradas
-driver = webdriver.Chrome(options=options)
+# driver = webdriver.Chrome(options=options)
+
+# URLS = ["https://www.elmundodelabijouterie.com.ar/etiqueta-producto/anillos-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/aros-acero/", ]
+# self.driver.get("https://www.elmundodelabijouterie.com.ar/etiqueta-producto/por-paquetes/")
 
 
-driver.get("https://www.elmundodelabijouterie.com.ar/categoria-producto/acero/")
-
-
-vuelta = 0
+# vuelta = 0
 # Define a function to check if new content has loaded
-def has_new_content_loaded(current_height):
-    # Scroll down to the bottom to trigger loading more content
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(4)  # Give it some time to load
+# def has_new_content_loaded(current_height):
+#     # Scroll down to the bottom to trigger loading more content
+#     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+#     time.sleep(5)  # Give it some time to load
 
-    # Get the new page height after scrolling
-    new_height = driver.execute_script("return document.body.scrollHeight")
-    print("Cargando más info...")
+#     # Get the new page height after scrolling
+#     new_height = driver.execute_script("return document.body.scrollHeight")
+#     print("Cargando más info...")
+    
 
-    # Check if new content has loaded (compare heights)
-    return new_height != current_height
+#     # if vuelta == 10:
+#     #     return False
+#     # Check if new content has loaded (compare heights)
+#     return new_height != current_height
 
-# Initialize variables
-scrolling = True
-page_height = driver.execute_script("return document.body.scrollHeight")
+# # Initialize variables
+# scrolling = True
+# page_height = driver.execute_script("return document.body.scrollHeight")
 
-# Scroll until no more new content is loaded
-while scrolling:
-    scrolling = has_new_content_loaded(page_height)
-    page_height = driver.execute_script("return document.body.scrollHeight")
+# # Scroll until no more new content is loaded
+# while scrolling:
+#     scrolling = has_new_content_loaded(page_height)
+#     # vuelta += 1
+#     page_height = driver.execute_script("return document.body.scrollHeight")
 
 
 class Getter_info():
-    def __init__(self, page_source):
-        self.soup = BeautifulSoup(page_source, 'lxml')
+    def __init__(self):
+        options = Options()
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--incognito')
+        options.add_argument('--headless') 
+        self.driver = webdriver.Chrome(options=options)
+        
+        # self.driver.get(url)
+
+        # self.scrolling = True
+        # self.page_height = self.driver.execute_script("return document.body.scrollHeight")
+
+        
         self.precios = []
         self.descripciones = []
         self.codigos = []
+
+        # self.scroll()
+
+
+    def get_html(self):
+        self.page_source = self.driver.page_source
+        self.soup = BeautifulSoup(self.page_source, 'lxml')
+
+    def get_url(self, url):
+        self.driver.get(url)
 
     def get_price_info(self):
         prices = self.soup.find_all("span", class_="woocommerce-Price-amount amount")
@@ -76,40 +102,131 @@ class Getter_info():
         data = {'Codigos': self.codigos, 'Precios': self.precios, 'Descripcion': self.descripciones}
         return data
 
+        # def scroller(self):
+    
+    def has_new_content_loaded(self, current_height):
+    # Scroll down to the bottom to trigger loading more content
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(5)  # Give it some time to load
 
-page_source = driver.page_source
-GI = Getter_info(page_source)
+        # Get the new page height after scrolling
+        new_height = self.driver.execute_script("return document.body.scrollHeight")
+        print("Cargando más info...")
+    
 
-data = GI.get_all_info_in_dict()
+        # if vuelta == 10:
+        #     return False
+        # Check if new content has loaded (compare heights)
+        return new_height != current_height
 
-# print(len(data["Codigos"]))
-# print(len(data["Precios"]))
-# print(len(data["Descripcion"]))
-# GI.get_codigos_info()
-# GI.get_productos_info()
-# GI.get_price_info()
-# print(len(GI.codigos))
-# print(len(GI.descripciones))
-# print(len(GI.precios))
-# print(GI.codigos)
-# print(GI.descripciones)
-# print(GI.precios)
+# Scroll until no more new content is loaded
+    def scroll(self):
+        while self.scrolling:
+            self.scrolling = self.has_new_content_loaded(self.page_height)
+            self.page_height = self.driver.execute_script("return document.body.scrollHeight")
+        self.get_html()
+    
 
-# data = {'Codigos': GI.codigos, 'precios': GI.precios, 'Descripcion': GI.descripciones}
+    def create_excel(self, urls, excel_files):
+        for url, excel_file in zip(urls, excel_files):
 
+            self.driver.get(url)
+            self.scrolling = True
+            self.page_height = self.driver.execute_script("return document.body.scrollHeight")
+            self.scroll()
 
-
-# Create the DataFrame with the specified index
-df = pd.DataFrame(data)
-# Specify the file path for the Excel file
-excel_file = 'bijouterie.xlsx'
-
-
-if os.path.exists(excel_file):
-    os.remove(excel_file)
+            self.precios.clear()
+            self.descripciones.clear()
+            self.codigos.clear()
+            data = self.get_all_info_in_dict()
 
 
-# Write the DataFrame to an Excel file
-df.to_excel(excel_file, index=False)
+            # Create the DataFrame with the specified index
+            df = pd.DataFrame(data)
 
-print(f"Excel '{excel_file}' creado exitosamente :)")
+
+            if os.path.exists(excel_file):
+                # delete the excel file if exist
+                os.remove(excel_file)
+
+            # Write the DataFrame to an Excel file
+            df.to_excel(excel_file, index=False)
+
+            print(f"Excel '{excel_file}' creado exitosamente :)")
+
+
+
+
+    #     is_bottom = False
+
+    #     while not is_bottom:
+
+    #         is_bottom = self.check_if_bottom()
+    #         self.get_codigos_info()
+    #         self.get_productos_info()
+    #         self.get_price_info()
+
+
+
+    #     while not is_bottom:
+    #         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    #         time.sleep(10)  # Give it some time to load
+
+    #         # Get the new page height after scrolling
+    #         new_height = driver.execute_script("return document.body.scrollHeight")
+    #         print("Cargando más info...")
+
+    #         if new_height != current_height:
+
+    #         # Check if new content has loaded (compare heights)
+    #             is_bottom = False
+    #         page_height = driver.execute_script("return document.body.scrollHeight")
+    #         return new_height != current_height
+
+    # def check_if_bottom(self):
+    #     current_height = driver.execute_script("return document.body.scrollHeight")
+
+    #     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    #     time.sleep(10)  # Give it some time to load
+    #     new_height = driver.execute_script("return document.body.scrollHeight")
+    #     if new_height == current_height:
+    #         return True
+    #     else:
+    #         return False
+
+
+urls = ["https://www.elmundodelabijouterie.com.ar/etiqueta-producto/por-paquetes/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/anillos-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/aros-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/cadenas-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/dijes-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/pulseras-acero/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/acero-blanco/", "https://www.elmundodelabijouterie.com.ar/etiqueta-producto/acero-dorado/"]
+excel_files = ["por_paquetes.xlsx","anillos.xlsx","aros.xlsx","cadenas.xlsx","dijes.xlsx","pulseras.xlsx","acero_blanco.xlsx","acero_dorado.xlsx"]
+
+if len(urls) != len(excel_files):
+    raise ValueError("The lengths of 'urls' and 'excel_files' are not equal.")
+
+GI = Getter_info()
+
+GI.create_excel(urls, excel_files)
+
+# for url, excel_file in zip(urls, excel_files):
+#     GI = Getter_info(urls, excel_files)
+
+#     GI.create_excel()
+
+    # data = GI.get_all_info_in_dict()
+
+    # print(len(data["Codigos"]))
+    # print(len(data["Precios"]))
+    # print(len(data["Descripcion"]))
+
+
+    # # Create the DataFrame with the specified index
+    # df = pd.DataFrame(data)
+
+
+    # if os.path.exists(excel_file):
+    #     # delete the excel file if exist
+    #     os.remove(excel_file)
+
+    # # Write the DataFrame to an Excel file
+    # df.to_excel(excel_file, index=False)
+
+    # print(f"Excel '{excel_file}' creado exitosamente :)")
+
